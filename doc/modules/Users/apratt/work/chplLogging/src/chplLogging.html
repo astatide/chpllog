@@ -144,37 +144,41 @@ runtime is greater than the runtime level of the call.</p>
 <div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">chplLogging</span><span class="p">;</span>
 
 <span class="kd">var</span> <span class="nx">log</span> <span class="o">=</span> <span class="k">new</span> <span class="k">owned</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">();</span>
-<span class="kd">var</span> <span class="nx">ch</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">();</span>
-
 <span class="nx">log</span><span class="p">.</span><span class="nx">currentDebugLevel</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Oh man&#39;</span><span class="p">,</span> <span class="s">&#39;hello world!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span> <span class="c1">// prints a runtime warning to stdout.</span>
+<span class="kd">var</span> <span class="nx">chmain</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">();</span>
+<span class="nx">chmain</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;stdout&#39;</span><span class="p">;</span>
 
-<span class="nx">ch</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;TEST&#39;</span><span class="p">;</span> <span class="c1">// now, any subsequent calls with this ch will be written to TEST.log</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Hey, why are we writing to a log file?&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">critical</span><span class="p">(</span><span class="s">&#39;Use me for failures!  I am always printed&#39;</span><span class="p">);</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s">&#39;I am only printed if the debugLevel = 0!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">warning</span><span class="p">(</span><span class="s">&#39;Who even cares about me?&#39;</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">header</span><span class="p">(</span><span class="s">&#39;Test of logging infrastructure&#39;</span><span class="p">,</span> <span class="nx">chmain</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s">&#39;Starting %i tasks&#39;</span><span class="p">.</span><span class="nx">format</span><span class="p">(</span><span class="mi">6</span><span class="p">),</span> <span class="nx">chmain</span><span class="p">);</span>
 
-<span class="nx">ch</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;stdout&#39;</span><span class="p">;</span> <span class="c1">// move back to using stdout</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;So, this message will go to stdout...&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
-<span class="nx">log</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s">&#39;This goes only if the debug level is set.  See how the header changes?&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+<span class="k">forall</span> <span class="nx">v</span> <span class="kd">in</span> <span class="mi">1</span><span class="o">..</span><span class="mi">6</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">ch</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">();</span>
+  <span class="nx">ch</span><span class="p">.</span><span class="nx">id</span> <span class="o">=</span> <span class="nx">v</span> <span class="p">:</span> <span class="kt">string</span><span class="p">;</span> <span class="c1">// Cast it to a string</span>
+  <span class="nx">ch</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;V%i&#39;</span><span class="p">.</span><span class="nx">format</span><span class="p">(</span><span class="nx">v</span><span class="p">);</span> <span class="c1">// now, any subsequent calls with this ch will be written to V%s.log</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">header</span><span class="p">(</span><span class="s">&#39;TESTING TASK ID:&#39;</span><span class="p">,</span> <span class="nx">v</span> <span class="p">:</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Hello, world, from log file V%i!&#39;</span><span class="p">.</span><span class="nx">format</span><span class="p">(</span><span class="nx">v</span><span class="p">),</span> <span class="nx">ch</span><span class="p">);</span>
+  <span class="nx">mainFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">critical</span><span class="p">(</span><span class="s">&#39;END - Normally, only use me for failure events.&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Ending!&#39;</span><span class="p">,</span> <span class="nx">chmain</span><span class="p">);</span>
 
 <span class="c1">// We can also use this to set a stack trace.  We can pass around ch and add</span>
 <span class="c1">// strings to it to let us know what function is calling.</span>
 
-<span class="k">proc</span> <span class="nf">mainFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">)</span> <span class="p">{</span>
+<span class="k">proc</span> <span class="nf">mainFunction</span><span class="p">(</span><span class="kd">in</span> <span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">)</span> <span class="k">throws</span> <span class="p">{</span>
   <span class="nx">ch</span> <span class="o">+=</span> <span class="s">&#39;mainFunction&#39;</span><span class="p">;</span>
-  <span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+  <span class="nx">secondaryFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
 
 <span class="p">}</span>
 
-<span class="k">proc</span> <span class="nf">secondaryFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">)</span> <span class="p">{</span>
+<span class="k">proc</span> <span class="nf">secondaryFunction</span><span class="p">(</span><span class="kd">in</span> <span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">)</span> <span class="p">{</span>
   <span class="nx">ch</span> <span class="o">+=</span> <span class="s">&#39;secondaryFunction&#39;</span><span class="p">;</span>
-  <span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
 
 <span class="p">}</span>
-
-<span class="nx">mainFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span>
 </pre></div>
 </div>
 <dl class="data">

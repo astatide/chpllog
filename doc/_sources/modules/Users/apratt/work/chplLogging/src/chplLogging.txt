@@ -28,37 +28,41 @@ As an example:
   use chplLogging;
 
   var log = new owned chplLogging.chplLogger();
-  var ch = new chplLogging.logHeader();
-
   log.currentDebugLevel = 0;
-  log.log('Oh man', 'hello world!', ch); // prints a runtime warning to stdout.
+  var chmain = new chplLogging.logHeader();
+  chmain.header = 'stdout';
 
-  ch.header = 'TEST'; // now, any subsequent calls with this ch will be written to TEST.log
-  log.log('Hey, why are we writing to a log file?', ch);
-  log.critical('Use me for failures!  I am always printed');
-  log.debug('I am only printed if the debugLevel = 0!', ch);
-  log.warning('Who even cares about me?');
+  log.header('Test of logging infrastructure', chmain);
+  log.debug('Starting %i tasks'.format(6), chmain);
 
-  ch.header = 'stdout'; // move back to using stdout
-  log.runtime('So, this message will go to stdout...', ch);
-  log.debug('This goes only if the debug level is set.  See how the header changes?', ch);
+  forall v in 1..6 {
+    var ch = new chplLogging.logHeader();
+    ch.id = v : string; // Cast it to a string
+    ch.header = 'V%i'.format(v); // now, any subsequent calls with this ch will be written to V%s.log
+    log.header('TESTING TASK ID:', v : string, ch);
+    log.log('Hello, world, from log file V%i!'.format(v), ch);
+    mainFunction(ch);
+    log.critical('END - Normally, only use me for failure events.', ch);
+  }
+
+  log.log('Ending!', chmain);
 
   // We can also use this to set a stack trace.  We can pass around ch and add
   // strings to it to let us know what function is calling.
 
-  proc mainFunction(ch: chplLogging.chplLogger) {
+  proc mainFunction(in ch: chplLogging.logHeader) throws {
     ch += 'mainFunction';
-    log.runtime('Calling!');
+    log.log('Calling!', ch);
+    secondaryFunction(ch);
+    log.log('Calling!', ch);
 
   }
 
-  proc secondaryFunction(ch: chplLogging.chplLogger) {
+  proc secondaryFunction(in ch: chplLogging.logHeader) {
     ch += 'secondaryFunction';
-    log.runtime('Calling!');
+    log.log('Calling!', ch);
 
   }
-
-  mainFunction(ch);
 
 
 
