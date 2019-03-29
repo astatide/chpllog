@@ -167,10 +167,8 @@ module chplLogging {
     var m: domain(int);
     var msg: [m] string;
     var sep: string = '//';
-    // Given to us by the Valkyries above.
     var id: string = 'stdout';
     var currentTask: int;
-    // header should actually be sendTo
     var header: string;
     var time: string;
     var printedHeader: bool = false;
@@ -178,7 +176,6 @@ module chplLogging {
 
     proc writeThis(wc) {
       // this is function to allow this to be written directly.
-      // mason test is whiny.
       try {
         var spaces: int;
         if !printedHeader {
