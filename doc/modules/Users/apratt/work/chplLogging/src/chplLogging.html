@@ -181,6 +181,36 @@ runtime is greater than the runtime level of the call.</p>
 <span class="p">}</span>
 </pre></div>
 </div>
+<p>produces the following stdout</p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="c1">///// RUNTIME //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</span>
+<span class="nx">Test</span> <span class="nx">of</span> <span class="nx">logging</span> <span class="nx">infrastructure</span>
+<span class="c1">///// DEBUG ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Starting</span> <span class="mi">6</span> <span class="nx">tasks</span>
+<span class="c1">///// RUNTIME //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Ending</span><span class="o">!</span>
+</pre></div>
+</div>
+<p>and 6 log files, similar to the following (V1.log)</p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="nx">TASK</span><span class="p">:</span> <span class="mi">0</span> <span class="nx">ID</span><span class="p">:</span> <span class="mi">1</span>
+
+<span class="c1">///// RUNTIME //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</span>
+      <span class="nx">TESTING</span> <span class="nx">TASK</span> <span class="nx">ID</span><span class="p">:</span> <span class="mi">1</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Hello</span><span class="p">,</span> <span class="nx">world</span><span class="p">,</span> <span class="nx">from</span> <span class="nx">log</span> <span class="nx">file</span> <span class="nx">V1</span><span class="o">!</span>
+
+      <span class="c1">//mainFunction//</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Calling</span><span class="o">!</span>
+
+      <span class="c1">//mainFunction////secondaryFunction//</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Calling</span><span class="o">!</span>
+
+      <span class="c1">//mainFunction//</span>
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">Calling</span><span class="o">!</span>
+<span class="c1">///// CRITICAL FAILURE /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////</span>
+
+
+               <span class="mf">0000000.00</span> <span class="o">-</span> <span class="nx">END</span> <span class="o">-</span> <span class="nx">Normally</span><span class="p">,</span> <span class="k">only</span> <span class="k">use</span> <span class="nx">me</span> <span class="k">for</span> <span class="nx">failure</span> <span class="nx">events</span><span class="p">.</span>
+</pre></div>
+</div>
 <dl class="data">
 <dt id="chplLogging.flushToLog">
 <em class="property">config const </em><code class="descname">flushToLog</code>: bool = false<a class="headerlink" href="#chplLogging.flushToLog" title="Permalink to this definition">¶</a></dt>
