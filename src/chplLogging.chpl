@@ -1,26 +1,139 @@
-/* Documentation for chplLogging */
+/*
 
-config const flushToLog: bool = false;
-config const stdoutOnly: bool = false;
+    A logging module.  Supports multiple run/log levels (such as DEBUG, RUNTIME,
+    etc) and multiple output channels (useful for logging output from individual
+    tasks).  Messages can be written to a channel any level simply by calling
+    the level appropriate function.  Write requests are ignored if the current
+    runtime is greater than the runtime level of the call.
+
+    As an example:
+
+    .. highlight:: chapel
+
+    ::
+
+      use chplLogging;
+
+      log = new owned chplLogging.chplLogger();
+      ch = new logHeader();
+
+      log.debugLevel = 0;
+      log.log('Oh man', 'hello world!', ch); // prints a runtime warning to stdout.
+
+      ch.header = 'TEST'; // now, any subsequent calls with this ch will be written to TEST.log
+      log.log('Hey, why are we writing to a log file?', ch);
+      log.critical('Use me for failures!  I am always printed');
+      log.debug('I'm only printed if the debugLevel = 0!', ch);
+      log.warning('Who even cares about me?');
+
+      ch.header = 'stdout'; // move back to using stdout
+      log.runtime('So, this message will go to stdout...', ch);
+      log.debug('This goes only if the debug level is set.  See how the header changes?', ch);
+
+      // We can also use this to set a stack trace.  We can pass around ch and add
+      // strings to it to let us know what function is calling.
+
+      proc mainFunction(ch: chplLogging.chplLogger) {
+        ch += 'mainFunction';
+        log.runtime('Calling!');
+
+      }
+
+      proc secondaryFunction(ch: chplLogging.chplLogger) {
+        ch += 'secondaryFunction';
+        log.runtime('Calling!');
+
+      }
+
+      mainFunction(ch);
+
+
+ */
 
 module chplLogging {
+
+  /*
+      If set to true, we explicitly call an fsync on the file and channel
+      every time we log.  Useful for debugging when your program might just
+      kick the bucket without properly closing the file.
+
+      Defaults to false.
+
+  */
+
+  config const flushToLog: bool = false;
+
+  /*
+      If set to true, calls fsync on file channels every time a log function
+      is called.  This is useful for debugging, as it ensures that the log files
+      are written to before the program crashes.
+
+      Defaults to false.
+
+  */
+  config const stdoutOnly: bool = false;
+
   writeln("New library: chplLogging");
 
   use spinlock;
   use IO;
   use Time;
 
-  record yggHeader {
+  /*
+
+  A record specifying where and how a message should be written.  This is
+  passed through to the function calls such as `log` and `debug`, which the
+  printToConsole method in chplLogger uses to determine whether to open a new
+  channel, use an existing one, or send in to stdout.  By default, it's set to
+  use stdout.
+
+  :arg levels: How many layers deep should the stack trace (or whatever else is
+    in msg) go?  Defaults to 10.
+
+  :arg m: The domain for msg.  This is an int domain and is used to ensure that
+    order of addition is kept when printing msg back out.
+
+  :arg msg: The set of strings that make up the header.  This is printed to a
+    channel when printedHeader = true; the chplLogger simply calls `write` on the
+    logHeader, and the writeThis() function prints the header if necessary.
+    By default, this is treated as a stack trace: each element in the msg array is
+    printed in the order it was added, separated by `sep`, starting at the end
+    and going `levels` back.  To add to this array, simply + a string to the logHeader.
+
+  :arg sep: The string to use to separate elements in msg when writing.
+
+  :arg id: an ID that is used internally as a name for the channel.  Note that
+    to ensure different messages are sent to different channels, the ids of two
+    different logHeaders must be unique.  Otherwise, the channels will overwrite
+    each other
+
+  :arg header: used to identify whether or not the message should be sent
+    to stdout, or to a file.  header is used as the filename, and is kept
+    different from id to allow multiple channels to write to the same file.
+    Since chplLogger blocks, writes should be safe.
+
+  :arg currentTask: An optional value which can be used to track which logHeader
+    is being used in which task.  Can also be used for naming files.
+
+  :arg time: The initial creation time of the logHeader.  This is used to
+    timestamp the time that messages are written (not the time that a write
+    was requested).
+
+  :arg printedHeader: If false, writeThis() will print the header.  Otherwise,
+    the header is ignored.
+
+  :arg useTime: Whether or not to timestamp a message.
+
+  */
+
+  record logHeader {
     // How many levels of the stack to report?
     var levels: int = 10;
-    // if we set it to zero, we should print FOREVER.  Not really, just the full
-    // stack.  Actually, that's really not true.  Oh well.
     var m: domain(int);
     var msg: [m] string;
     var sep: string = '//';
     // Given to us by the Valkyries above.
     var id: string = 'stdout';
-    var sendTo: string;
     var currentTask: int;
     // header should actually be sendTo
     var header: string;
@@ -101,8 +214,15 @@ module chplLogging {
     }
   }
 
-  proc +(a: yggHeader, b: string) {
-    var y = new yggHeader();
+  /*
+
+  Function overloads for the logHeader which allow add strings, in order, to the
+  internal domain to allow for simplification of a stack trace.
+
+  */
+
+  proc +(a: logHeader, b: string) {
+    var y = new logHeader();
     for i in 1..a.m.size {
       y.m.add(i);
       y.msg[i] = a.msg[i];
@@ -118,8 +238,14 @@ module chplLogging {
     return y;
   }
 
-  proc +(b: string, a: yggHeader) {
-    var y = new yggHeader();
+  /*
+
+  Same as above, but in the reverse case.
+
+  */
+
+  proc +(b: string, a: logHeader) {
+    var y = new logHeader();
     for i in 1..a.m.size {
       y.m.add(i);
       y.msg[i] = a.msg[i];
@@ -135,25 +261,56 @@ module chplLogging {
     return y;
   }
 
-  proc +=(ref a: yggHeader, b: string) {
+  /*
+
+  In case you like a good in-place addition.
+
+  */
+
+  proc +=(ref a: logHeader, b: string) {
     a.m.add(a.m.size+1);
     a.msg[a.m.size+1] = b;
   }
 
-  class YggdrasilLogging {
+  /*
+
+  The logging module.  This is what is responsible for storing file handles,
+  channels, and most of the formatting options.
+
+  :arg currentDebugLevel: What level of messages to print.  Valid values are
+    -1, 0, 1, and 2.  -1 should not be used externally and is used to disable
+    every log call that is NOT called with .devel().  This is the type of thing
+    you would set with a configuration flag, for instance.
+
+  :arg maxCharacters: how many characters can be printed on one line before
+    a new line is written.  Note that this is 'fuzzy' currently.  Eventually,
+    you'll be able to disable newlines altogether (useful when making a log
+    searchable or human readable).
+
+  :arg headerStarter: Filler character used in the various headers.
+
+  :arg indent: How many spaces should proceed each message?
+
+  :arg fileName: What logfile should stdout go to?
+
+  :arg logsDir: What directory logs should be stored in.
+
+  */
+
+  class chplLogging {
     // This is a class to let us handle all input and output.
     var currentDebugLevel: int;
+
+    /* Constants for use in determing log levels */
     var DEVEL = -1;
     var DEBUG = 0;
     var WARNING = 1;
     var RUNTIME = 2;
     var maxCharacters = 160;
-    var headerLiner = '_';
     var headerStarter = '/';
     var indent = 5;
     var l = new shared spinlock.SpinLock();
     var tId: int;
-    //var wc: channel;
     var filesOpened: domain(string);
     var channelsOpened: [filesOpened] channel(true,iokind.dynamic,true);
     var channelDebugHeader: [filesOpened] string;
@@ -161,19 +318,13 @@ module chplLogging {
     var fileHandles: [filesOpened] file;
     var lastDebugHeader = '';
     var time = Time.getCurrentTime();
-    //var l: [filesOpened] spinlock.SpinLock;
+    var fileName = 'logging.log';
+    var logsDir = 'logs';
 
-    proc init() {
-      //this.filesOpened = new domain(string);
-      //this.channelsOpened = [filesOpened] channel(true,iokind.dynamic,true);
-      //this.filesOpened.add('stdout');
-      //this.channelsOpened['stdout'] = stdout;
-    }
+    /* Called in the event of a shutdown to ensure channels are closed and files are synced */
 
     proc exitRoutine() throws {
       for id in this.filesOpened {
-        //this.channelsOpened[id].commit();
-        //writeln(this.fileHandles[id] : string);
         try {
           this.channelsOpened[id].writeln('EXCEPTION CAUGHT');
           this.channelsOpened[id].close();
@@ -184,6 +335,8 @@ module chplLogging {
       }
     }
 
+    /* Formats the debugLevel header, not the stack trace header. */
+
     proc formatHeader(mtype: string) {
       // Formats a header for us to print out to stdout.
       var header = ' '.join(this.headerStarter*5, mtype, this.headerStarter);
@@ -192,11 +345,28 @@ module chplLogging {
       return header;
     }
 
-    proc printToConsole(msg, debugLevel: string, hstring: yggHeader, header: bool) throws {
+    /*
+
+    The bulk of the logic.  This is responsible for parsing the logHeader,
+    determining what channel should be written to, and opening it if necessary.
+    Note that things can be sent to both stdout AND a log file for stdout (think
+    of the tee program).  It determines whether the incoming message is of the
+    same debugLevel or not, and if not, prints a new header.
+
+    Do not call this directly; it only prints what it's told to print.
+
+    Has separate logic for 'regular' or 'header' type messages; header type
+    messages are things like logos, etc.  They are not timestamped and
+    have slightly different formatting.  They are also not assumed to be splittable.
+
+    */
+
+
+    proc printToConsole(msg, debugLevel: string, lh: logHeader, header: bool) throws {
       // check whether we're going to stdout or not.
       var wc = stdout;
       var useStdout: bool = true;
-      var vstring = hstring;
+      var vstring = lh;
       var lf: file;
       var lastDebugHeader: string;
       l.lock();
@@ -205,21 +375,20 @@ module chplLogging {
       if this.lastDebugHeader == '' {
         if !this.filesOpened.contains('stdout') {
           this.filesOpened.add('stdout');
-          var lf = open('EVOCAP.log', iomode.cw);
+          var lf = open((this.fileName), iomode.cw);
           this.fileHandles['stdout'] = lf;
           this.channelsOpened['stdout'] = lf.writer();
         }
       }
 
-      if hstring.header == 'VALKYRIE' {
-        id = hstring.id;
+      if lh.header != 'stdout' {
+        id = lh.id;
         // First, check to see whether we've created the file.
         if this.filesOpened.contains(id) {
           if flushToLog {
-            // if we're in debug mode, we close the channels.
-            // Otherwise, we leave them open.  It's for exception handling.
+            // This is in the event that we want to ensure our files are synced.
+            // Useful for debugging.
             try {
-              // yay segfault?
               lf = this.fileHandles[id];
               var fileSize = lf.length();
               this.channelsOpened[id] = this.fileHandles[id].writer(start=fileSize);
@@ -230,7 +399,8 @@ module chplLogging {
             wc = stdout;
           }
         } else {
-          lf = open('logs/V-' + hstring.currentTask + '.log' : string, iomode.cw);
+          // I wonder if there's an os.join like functionality in Chapel?
+          lf = open(this.logsDir + '/' + lh.header + '.log' : string, iomode.cw);
           this.filesOpened.add(id);
           this.channelsOpened[id] = lf.writer();
           this.fileHandles[id] = lf;
@@ -238,8 +408,7 @@ module chplLogging {
           if stdoutOnly {
             wc = stdout;
           }
-          // First Valkyrie!
-          wc.writeln('VALKYRIE TASK: ' + hstring.currentTask : string + ' ID: ' + id : string);
+          wc.writeln('TASK: ' + lh.currentTask : string + ' ID: ' + id : string);
           wc.writeln('');
         }
         useStdout = false;
@@ -253,7 +422,6 @@ module chplLogging {
         this.channelDebugPath[id] = vstring.path();
       }
       vstring.time = '%010.2dr'.format(Time.getCurrentTime() - this.time);
-      //vstring =  + vstring.sep + vstring;
       var tm: int;
       if debugLevel != this.channelDebugHeader[id] {
         wc.writeln(this.formatHeader(debugLevel));
@@ -262,7 +430,6 @@ module chplLogging {
         }
         this.channelDebugHeader[id] = debugLevel;
       }
-      //wc.write(' '*(this.indent*3));
       if header {
         wc.write(vstring);
         for m in msg {
@@ -307,7 +474,6 @@ module chplLogging {
         }
       }
       if id != 'stdout' {
-        //writeln(wc.type : string);
         if flushToLog {
           wc.close();
           this.fileHandles[id].fsync();
@@ -316,94 +482,140 @@ module chplLogging {
       l.unlock();
     }
 
+    /*
+
+    Takes input information from the actual log calling functions, determines
+    whether the current debugLevel allows it to be written, then calls
+    printToConsole if true.
+
+    This version supports not using a logHeader.  You probably shouldn't use it.
+
+    */
+
     proc genericMessage(msg, mtype: int, debugLevel: string, gt: bool) {
       if gt {
         if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, hstring=new yggHeader());
+          this.printToConsole(msg, debugLevel, lh=new logHeader());
         }
       } else {
         if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, hstring=new yggHeader());
+          this.printToConsole(msg, debugLevel, lh=new logHeader());
         }
       }
     }
 
-    proc genericMessage(msg, mtype: int, debugLevel: string, hstring: yggHeader, gt: bool) {
+    /*
+
+    Same as above, but supports using an actual logHeader.
+
+    */
+
+    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool) {
       if gt {
         if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, hstring, header=false);
+          this.printToConsole(msg, debugLevel, lh, header=false);
         }
       } else {
         if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, hstring, header=false);
+          this.printToConsole(msg, debugLevel, lh, header=false);
         }
       }
     }
 
-    proc genericMessage(msg, mtype: int, debugLevel: string, hstring: yggHeader, gt: bool, header: bool) {
+    /*
+
+    Not too different from the above, but is used solely by the .header() method.
+
+    */
+
+    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool, header: bool) {
       if gt {
         if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, hstring, header);
+          this.printToConsole(msg, debugLevel, lh, header);
         }
       } else {
         if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, hstring, header);
+          this.printToConsole(msg, debugLevel, lh, header);
         }
       }
     }
+
+    /* Call this in your program to do debug logging */
 
     proc debug(msg...?n) {
       this.genericMessage(msg, this.DEBUG, 'DEBUG', gt=true);
     }
 
-    proc debug(msg...?n, hstring: yggHeader) {
-      this.genericMessage(msg, this.DEBUG, 'DEBUG', hstring, gt=true);
+    /* Call this in your program to do debug logging w/ a logHeader */
+
+    proc debug(msg...?n, lh: logHeader) {
+      this.genericMessage(msg, this.DEBUG, 'DEBUG', lh, gt=true);
     }
+
+    /* Call this in your program to do DEVEL type logging, sans logHeader */
 
     proc devel(msg...?n) {
       this.genericMessage(msg, this.DEVEL, 'DEVEL', gt=false);
     }
 
-    proc devel(msg...?n, hstring: yggHeader) {
-      this.genericMessage(msg, this.DEVEL, 'DEVEL', hstring, gt=false);
+    /* Call this in your program to do DEVEL type logging */
+
+    proc devel(msg...?n, lh: logHeader) {
+      this.genericMessage(msg, this.DEVEL, 'DEVEL', lh, gt=false);
     }
+
+    /* Call this in your program to call a RUNTIME WARNING, sans logHeader */
 
     proc warning(msg...?n) {
       this.genericMessage(msg, this.WARNING, 'WARNING', gt=true);
     }
 
-    proc warning(msg...?n, hstring: yggHeader) {
-      this.genericMessage(msg, this.WARNING, 'WARNING', hstring, gt=true);
+    /* Call this in your program to call a RUNTIME WARNING */
+
+    proc warning(msg...?n, lh: logHeader) {
+      this.genericMessage(msg, this.WARNING, 'WARNING', lh, gt=true);
     }
+
+    /* Call this in your program for normal program logging, sans logHeader */
 
     proc log(msg...?n) {
       this.genericMessage(msg, this.RUNTIME, 'RUNTIME', gt=true);
     }
 
-    proc log(msg...?n, hstring: yggHeader) {
-      this.genericMessage(msg, this.RUNTIME, 'RUNTIME', hstring, gt=true);
+    /* Call this in your program for normal program logging */
+
+    proc log(msg...?n, lh: logHeader) {
+      this.genericMessage(msg, this.RUNTIME, 'RUNTIME', lh, gt=true);
     }
 
-    proc critical(msg...?n, hstring: yggHeader) {
-      this.genericMessage(msg, this.currentDebugLevel, 'CRITICAL FAILURE', hstring, gt=true);
+    /* Call this in your program for critical failure messages. */
+
+    proc critical(msg...?n, lh: logHeader) {
+      this.genericMessage(msg, this.currentDebugLevel, 'CRITICAL FAILURE', lh, gt=true);
     }
+
+    /* Call this in your program for critical failure messages, sans logHeader. */
 
     proc critical(msg...?n) {
-      this.genericMessage(msg, this.currentDebugLevel, 'CRITICAL FAILURE', hstring=new yggHeader(), gt=true);
+      this.genericMessage(msg, this.currentDebugLevel, 'CRITICAL FAILURE', lh=new logHeader(), gt=true);
     }
+
+    /* Call this in your program to print out logo-type messages, sans logHeader. */
 
     proc header(msg...?n) {
-      var yh = new yggHeader();
+      var yh = new logHeader();
       yh.printedHeader = true;
       yh.useTime = false;
-      this.genericMessage((msg), this.RUNTIME, 'RUNTIME', hstring=yh, gt=true, header=true);
+      this.genericMessage((msg), this.RUNTIME, 'RUNTIME', lh=yh, gt=true, header=true);
     }
 
-    proc header(msg...?n, in hstring: yggHeader) {
-      //var yh = new yggHeader();
-      hstring.printedHeader = true;
-      hstring.useTime = false;
-      this.genericMessage((msg), this.RUNTIME, 'RUNTIME', hstring=hstring, gt=true, header=true);
+    /* Call this in your program to print out logo-type messages. */
+
+    proc header(msg...?n, in lh: logHeader) {
+      //var yh = new logHeader();
+      lh.printedHeader = true;
+      lh.useTime = false;
+      this.genericMessage((msg), this.RUNTIME, 'RUNTIME', lh=lh, gt=true, header=true);
     }
 
   }

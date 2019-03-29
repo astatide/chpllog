@@ -15,7 +15,7 @@ class SpinLock {
   var readHandles: atomic int;
   var lockLog: bool = false;
 
-  inline proc lock(hstring: chplLogging.yggHeader) throws {
+  inline proc lock(hstring: chplLogging.logHeader) throws {
     if lockLog {
       this.log.debug('locking', this.t, hstring);
     }
@@ -30,7 +30,7 @@ class SpinLock {
     }
   }
 
-  inline proc unlock(hstring: chplLogging.yggHeader) throws {
+  inline proc unlock(hstring: chplLogging.logHeader) throws {
     this.n.sub(1);
     if this.n.read() != 0 {
       this.log.critical('CRITICAL FAILURE: During unlock, spinlock has been acquired multiple times on', this.t, hstring);
@@ -51,7 +51,7 @@ class SpinLock {
     l.clear(memory_order_release);
   }
 
-  inline proc rl(hstring: chplLogging.yggHeader) {
+  inline proc rl(hstring: chplLogging.logHeader) {
     // This checks to see whether the write lock is active, and if not,
     // allows reads.
     while this.writeLock.read() >= 1 do chpl_task_yield();
@@ -61,7 +61,7 @@ class SpinLock {
     }
   }
 
-  inline proc url(hstring: chplLogging.yggHeader) {
+  inline proc url(hstring: chplLogging.logHeader) {
     if lockLog {
       this.log.debug('Releasing read lock on', this.t, hstring);
     }
@@ -71,7 +71,7 @@ class SpinLock {
     }
   }
 
-  inline proc wl(hstring: chplLogging.yggHeader) {
+  inline proc wl(hstring: chplLogging.logHeader) {
     // While we are actively reading, we do not write.
     if lockLog {
       this.log.debug('Requesting write lock on', this.t, 'current RL', this.readHandles.read() : string, hstring);
@@ -84,7 +84,7 @@ class SpinLock {
     this.lock(hstring);
   }
 
-  inline proc uwl(hstring: chplLogging.yggHeader) {
+  inline proc uwl(hstring: chplLogging.logHeader) {
     this.writeLock.sub(1);
     if lockLog {
       this.log.debug('Releasing write lock on', this.t, 'current WL', this.writeLock.read() : string, hstring);
