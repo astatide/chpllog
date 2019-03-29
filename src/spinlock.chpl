@@ -8,7 +8,7 @@ class TooManyLocksError : Error {
 class SpinLock {
   var l: atomic bool;
   //var log = new shared chplLogging.YggdrasilLogging();
-  var log: shared chplLogging.YggdrasilLogging;
+  var log: shared chplLogging.chplLogger();
   var n: atomic int;
   var t: string;
   var writeLock: atomic int;

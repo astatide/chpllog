@@ -14,16 +14,16 @@
 
       use chplLogging;
 
-      log = new owned chplLogging.chplLogger();
-      ch = new logHeader();
+      var log = new owned chplLogging.chplLogger();
+      var ch = new chplLogging.logHeader();
 
-      log.debugLevel = 0;
+      log.currentDebugLevel = 0;
       log.log('Oh man', 'hello world!', ch); // prints a runtime warning to stdout.
 
       ch.header = 'TEST'; // now, any subsequent calls with this ch will be written to TEST.log
       log.log('Hey, why are we writing to a log file?', ch);
       log.critical('Use me for failures!  I am always printed');
-      log.debug('I'm only printed if the debugLevel = 0!', ch);
+      log.debug('I am only printed if the debugLevel = 0!', ch);
       log.warning('Who even cares about me?');
 
       ch.header = 'stdout'; // move back to using stdout
@@ -72,8 +72,6 @@ module chplLogging {
 
   */
   config const stdoutOnly: bool = false;
-
-  writeln("New library: chplLogging");
 
   use spinlock;
   use IO;
@@ -143,40 +141,42 @@ module chplLogging {
 
     proc writeThis(wc) {
       // this is function to allow this to be written directly.
-      //
-      var spaces: int;
-      if !printedHeader {
-        wc.writeln('');
-        wc.write(' '*6);
-        if this.m.size > this.levels {
-          wc.write('..', this.sep);
-          for i in this.m.size-levels+1..this.m.size {
-            wc.write(this.msg[i], this.sep);
+      // mason test is whiny.
+      try {
+        var spaces: int;
+        if !printedHeader {
+          wc.writeln('');
+          wc.write(' '*6);
+          if this.m.size > this.levels {
+            wc.write('..', this.sep);
+            for i in this.m.size-levels+1..this.m.size {
+              wc.write(this.msg[i], this.sep);
+            }
+          } else {
+            for i in 1..this.m.size {
+              wc.write(this.msg[i], this.sep);
+            }
           }
+          wc.writeln('');
+          if this.useTime {
+            spaces = 15;
+          } else {
+            spaces = 6;
+          }
+          this.printedHeader = true;
+          //wc.write(this.time, ' - ');
         } else {
-          for i in 1..this.m.size {
-            wc.write(this.msg[i], this.sep);
+          if this.useTime {
+            spaces = 9;
+          } else {
+            spaces = 6;
           }
         }
-        wc.writeln('');
+        wc.write(' '*spaces);
         if this.useTime {
-          spaces = 15;
-        } else {
-          spaces = 6;
+          wc.write(this.time, ' - ');
         }
-        this.printedHeader = true;
-        //wc.write(this.time, ' - ');
-      } else {
-        if this.useTime {
-          spaces = 9;
-        } else {
-          spaces = 6;
-        }
-      }
-      wc.write(' '*spaces);
-      if this.useTime {
-        wc.write(this.time, ' - ');
-      }
+      } catch {}
     }
 
     proc path() {
@@ -297,7 +297,7 @@ module chplLogging {
 
   */
 
-  class chplLogging {
+  class chplLogger {
     // This is a class to let us handle all input and output.
     var currentDebugLevel: int;
 
@@ -318,12 +318,12 @@ module chplLogging {
     var fileHandles: [filesOpened] file;
     var lastDebugHeader = '';
     var time = Time.getCurrentTime();
-    var fileName = 'logging.log';
-    var logsDir = 'logs';
+    var fileName = 'chpl.log';
+    var logsDir = '';
 
     /* Called in the event of a shutdown to ensure channels are closed and files are synced */
 
-    proc exitRoutine() throws {
+    proc exitRoutine() {
       for id in this.filesOpened {
         try {
           this.channelsOpened[id].writeln('EXCEPTION CAUGHT');
@@ -375,7 +375,7 @@ module chplLogging {
       if this.lastDebugHeader == '' {
         if !this.filesOpened.contains('stdout') {
           this.filesOpened.add('stdout');
-          var lf = open((this.fileName), iomode.cw);
+          var lf = open(this.fileName, iomode.cw);
           this.fileHandles['stdout'] = lf;
           this.channelsOpened['stdout'] = lf.writer();
         }
@@ -388,11 +388,9 @@ module chplLogging {
           if flushToLog {
             // This is in the event that we want to ensure our files are synced.
             // Useful for debugging.
-            try {
-              lf = this.fileHandles[id];
-              var fileSize = lf.length();
-              this.channelsOpened[id] = this.fileHandles[id].writer(start=fileSize);
-            }
+            lf = this.fileHandles[id];
+            var fileSize = lf.length();
+            this.channelsOpened[id] = this.fileHandles[id].writer(start=fileSize);
           }
           wc = this.channelsOpened[id];
           if stdoutOnly {
@@ -400,7 +398,12 @@ module chplLogging {
           }
         } else {
           // I wonder if there's an os.join like functionality in Chapel?
-          lf = open(this.logsDir + '/' + lh.header + '.log' : string, iomode.cw);
+          if this.logsDir != '' {
+            lf = open(this.logsDir + '/' + lh.header + '.log' : string, iomode.cw);
+          } else {
+            // that header is empty yo.  writeln('TESTING! ', lh.header);
+            lf = open(lh.header + '.log' : string, iomode.cw);
+          }
           this.filesOpened.add(id);
           this.channelsOpened[id] = lf.writer();
           this.fileHandles[id] = lf;
@@ -492,15 +495,19 @@ module chplLogging {
 
     */
 
-    proc genericMessage(msg, mtype: int, debugLevel: string, gt: bool) {
-      if gt {
-        if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, lh=new logHeader());
+    proc genericMessage(msg, mtype: int, debugLevel: string, gt: bool)  {
+      try {
+        if gt {
+          if this.currentDebugLevel <= mtype {
+            this.printToConsole(msg, debugLevel, lh=new logHeader(), header=false);
+          }
+        } else {
+          if this.currentDebugLevel == mtype {
+            this.printToConsole(msg, debugLevel, lh=new logHeader(), header=false);
+          }
         }
-      } else {
-        if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, lh=new logHeader());
-        }
+      } catch {
+        // hmmm.
       }
     }
 
@@ -510,15 +517,19 @@ module chplLogging {
 
     */
 
-    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool) {
-      if gt {
-        if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, lh, header=false);
+    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool)  {
+      try {
+        if gt {
+          if this.currentDebugLevel <= mtype {
+            this.printToConsole(msg, debugLevel, lh, header=false);
+          }
+        } else {
+          if this.currentDebugLevel == mtype {
+            this.printToConsole(msg, debugLevel, lh, header=false);
+          }
         }
-      } else {
-        if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, lh, header=false);
-        }
+      } catch {
+        // what, you gonna cry about it?
       }
     }
 
@@ -528,15 +539,22 @@ module chplLogging {
 
     */
 
-    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool, header: bool) {
-      if gt {
-        if this.currentDebugLevel <= mtype {
-          this.printToConsole(msg, debugLevel, lh, header);
+    proc genericMessage(msg, mtype: int, debugLevel: string, lh: logHeader, gt: bool, header: bool)  {
+      try {
+        if gt {
+          if this.currentDebugLevel <= mtype {
+            this.printToConsole(msg, debugLevel, lh, header);
+          }
+        } else {
+          if this.currentDebugLevel == mtype {
+            this.printToConsole(msg, debugLevel, lh, header);
+          }
         }
-      } else {
-        if this.currentDebugLevel == mtype {
-          this.printToConsole(msg, debugLevel, lh, header);
-        }
+      } catch {
+        // you think anyone cares about those errors?  Hmmm?  Do you?
+        // Do you want your whole program to fail because you imported a shoddy
+        // module?  Not that I'm saying it's shoddy.  It's not.  It's just still
+        // in development.
       }
     }
 
@@ -548,7 +566,7 @@ module chplLogging {
 
     /* Call this in your program to do debug logging w/ a logHeader */
 
-    proc debug(msg...?n, lh: logHeader) {
+    proc debug(msg...?n, in lh: logHeader) {
       this.genericMessage(msg, this.DEBUG, 'DEBUG', lh, gt=true);
     }
 
@@ -560,7 +578,7 @@ module chplLogging {
 
     /* Call this in your program to do DEVEL type logging */
 
-    proc devel(msg...?n, lh: logHeader) {
+    proc devel(msg...?n, in lh: logHeader) {
       this.genericMessage(msg, this.DEVEL, 'DEVEL', lh, gt=false);
     }
 
@@ -572,7 +590,7 @@ module chplLogging {
 
     /* Call this in your program to call a RUNTIME WARNING */
 
-    proc warning(msg...?n, lh: logHeader) {
+    proc warning(msg...?n, in lh: logHeader) {
       this.genericMessage(msg, this.WARNING, 'WARNING', lh, gt=true);
     }
 
@@ -584,13 +602,13 @@ module chplLogging {
 
     /* Call this in your program for normal program logging */
 
-    proc log(msg...?n, lh: logHeader) {
+    proc log(msg...?n, in lh: logHeader) {
       this.genericMessage(msg, this.RUNTIME, 'RUNTIME', lh, gt=true);
     }
 
     /* Call this in your program for critical failure messages. */
 
-    proc critical(msg...?n, lh: logHeader) {
+    proc critical(msg...?n, in lh: logHeader) {
       this.genericMessage(msg, this.currentDebugLevel, 'CRITICAL FAILURE', lh, gt=true);
     }
 
