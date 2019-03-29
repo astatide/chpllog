@@ -1,0 +1,645 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>chplLogging &mdash; chpldoc 0.0.1 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="chpldoc 0.0.1 documentation" href="../../../../../../index.html"/>
+        <link rel="prev" title="chpldoc documentation" href="../../../../../../index.html"/> 
+
+  
+  <script src="../../../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../../../index.html" class="icon icon-home"> chpldoc
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../index.html">chpldoc documentation</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="">chplLogging</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../../../../index.html">chpldoc</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../../../../index.html">Docs</a> &raquo;</li>
+      
+    <li>chplLogging</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../../../../../_sources/modules/Users/apratt/work/chplLogging/src/chplLogging.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <span class="target" id="module-chplLogging"></span><div class="section" id="chpllogging">
+<h1>chplLogging<a class="headerlink" href="#chpllogging" title="Permalink to this headline">¶</a></h1>
+<p><strong>Usage</strong></p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">chplLogging</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>A logging module.  Supports multiple run/log levels (such as DEBUG, RUNTIME,
+etc) and multiple output channels (useful for logging output from individual
+tasks).  Messages can be written to a channel any level simply by calling
+the level appropriate function.  Write requests are ignored if the current
+runtime is greater than the runtime level of the call.</p>
+<p>As an example:</p>
+<div class="highlight-chapel"><div class="highlight"><pre><span></span><span class="k">use</span> <span class="nx">chplLogging</span><span class="p">;</span>
+
+<span class="kd">var</span> <span class="nx">log</span> <span class="o">=</span> <span class="k">new</span> <span class="k">owned</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">();</span>
+<span class="kd">var</span> <span class="nx">ch</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">logHeader</span><span class="p">();</span>
+
+<span class="nx">log</span><span class="p">.</span><span class="nx">currentDebugLevel</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Oh man&#39;</span><span class="p">,</span> <span class="s">&#39;hello world!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span> <span class="c1">// prints a runtime warning to stdout.</span>
+
+<span class="nx">ch</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;TEST&#39;</span><span class="p">;</span> <span class="c1">// now, any subsequent calls with this ch will be written to TEST.log</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s">&#39;Hey, why are we writing to a log file?&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">critical</span><span class="p">(</span><span class="s">&#39;Use me for failures!  I am always printed&#39;</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s">&#39;I am only printed if the debugLevel = 0!&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">warning</span><span class="p">(</span><span class="s">&#39;Who even cares about me?&#39;</span><span class="p">);</span>
+
+<span class="nx">ch</span><span class="p">.</span><span class="nx">header</span> <span class="o">=</span> <span class="s">&#39;stdout&#39;</span><span class="p">;</span> <span class="c1">// move back to using stdout</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;So, this message will go to stdout...&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+<span class="nx">log</span><span class="p">.</span><span class="nx">debug</span><span class="p">(</span><span class="s">&#39;This goes only if the debug level is set.  See how the header changes?&#39;</span><span class="p">,</span> <span class="nx">ch</span><span class="p">);</span>
+
+<span class="c1">// We can also use this to set a stack trace.  We can pass around ch and add</span>
+<span class="c1">// strings to it to let us know what function is calling.</span>
+
+<span class="k">proc</span> <span class="nf">mainFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">ch</span> <span class="o">+=</span> <span class="s">&#39;mainFunction&#39;</span><span class="p">;</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+<span class="k">proc</span> <span class="nf">secondaryFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">:</span> <span class="nx">chplLogging</span><span class="p">.</span><span class="nx">chplLogger</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">ch</span> <span class="o">+=</span> <span class="s">&#39;secondaryFunction&#39;</span><span class="p">;</span>
+  <span class="nx">log</span><span class="p">.</span><span class="nx">runtime</span><span class="p">(</span><span class="s">&#39;Calling!&#39;</span><span class="p">);</span>
+
+<span class="p">}</span>
+
+<span class="nx">mainFunction</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span>
+</pre></div>
+</div>
+<dl class="data">
+<dt id="chplLogging.flushToLog">
+<em class="property">config const </em><code class="descname">flushToLog</code>: bool = false<a class="headerlink" href="#chplLogging.flushToLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>If set to true, we explicitly call an fsync on the file and channel
+every time we log.  Useful for debugging when your program might just
+kick the bucket without properly closing the file.</p>
+<p>Defaults to false.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="chplLogging.stdoutOnly">
+<em class="property">config const </em><code class="descname">stdoutOnly</code>: bool = false<a class="headerlink" href="#chplLogging.stdoutOnly" title="Permalink to this definition">¶</a></dt>
+<dd><p>If set to true, calls fsync on file channels every time a log function
+is called.  This is useful for debugging, as it ensures that the log files
+are written to before the program crashes.</p>
+<p>Defaults to false.</p>
+</dd></dl>
+
+<dl class="record">
+<dt id="chplLogging.logHeader">
+<em class="property">record </em><code class="descname">logHeader</code><a class="headerlink" href="#chplLogging.logHeader" title="Permalink to this definition">¶</a></dt>
+<dd><p>A record specifying where and how a message should be written.  This is
+passed through to the function calls such as <cite>log</cite> and <cite>debug</cite>, which the
+printToConsole method in chplLogger uses to determine whether to open a new
+channel, use an existing one, or send in to stdout.  By default, it&#8217;s set to
+use stdout.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>levels</strong> &#8211; How many layers deep should the stack trace (or whatever else is
+in msg) go?  Defaults to 10.</li>
+<li><strong>m</strong> &#8211; The domain for msg.  This is an int domain and is used to ensure that
+order of addition is kept when printing msg back out.</li>
+<li><strong>msg</strong> &#8211; The set of strings that make up the header.  This is printed to a
+channel when printedHeader = true; the chplLogger simply calls <cite>write</cite> on the
+logHeader, and the writeThis() function prints the header if necessary.
+By default, this is treated as a stack trace: each element in the msg array is
+printed in the order it was added, separated by <cite>sep</cite>, starting at the end
+and going <cite>levels</cite> back.  To add to this array, simply + a string to the logHeader.</li>
+<li><strong>sep</strong> &#8211; The string to use to separate elements in msg when writing.</li>
+<li><strong>id</strong> &#8211; an ID that is used internally as a name for the channel.  Note that
+to ensure different messages are sent to different channels, the ids of two
+different logHeaders must be unique.  Otherwise, the channels will overwrite
+each other</li>
+<li><strong>header</strong> &#8211; used to identify whether or not the message should be sent
+to stdout, or to a file.  header is used as the filename, and is kept
+different from id to allow multiple channels to write to the same file.
+Since chplLogger blocks, writes should be safe.</li>
+<li><strong>currentTask</strong> &#8211; An optional value which can be used to track which logHeader
+is being used in which task.  Can also be used for naming files.</li>
+<li><strong>time</strong> &#8211; The initial creation time of the logHeader.  This is used to
+timestamp the time that messages are written (not the time that a write
+was requested).</li>
+<li><strong>printedHeader</strong> &#8211; If false, writeThis() will print the header.  Otherwise,
+the header is ignored.</li>
+<li><strong>useTime</strong> &#8211; Whether or not to timestamp a message.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="chplLogging.logHeader.levels">
+<em class="property">var </em><code class="descname">levels</code>: int = 10<a class="headerlink" href="#chplLogging.logHeader.levels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.m">
+<em class="property">var </em><code class="descname">m</code>: domain(int)<a class="headerlink" href="#chplLogging.logHeader.m" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.msg">
+<em class="property">var </em><code class="descname">msg</code>: [m] string<a class="headerlink" href="#chplLogging.logHeader.msg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.sep">
+<em class="property">var </em><code class="descname">sep</code>: string = &quot;//&quot;<a class="headerlink" href="#chplLogging.logHeader.sep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.id">
+<em class="property">var </em><code class="descname">id</code>: string = &quot;stdout&quot;<a class="headerlink" href="#chplLogging.logHeader.id" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.currentTask">
+<em class="property">var </em><code class="descname">currentTask</code>: int<a class="headerlink" href="#chplLogging.logHeader.currentTask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.header">
+<em class="property">var </em><code class="descname">header</code>: string<a class="headerlink" href="#chplLogging.logHeader.header" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.time">
+<em class="property">var </em><code class="descname">time</code>: string<a class="headerlink" href="#chplLogging.logHeader.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.printedHeader">
+<em class="property">var </em><code class="descname">printedHeader</code>: bool = false<a class="headerlink" href="#chplLogging.logHeader.printedHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.logHeader.useTime">
+<em class="property">var </em><code class="descname">useTime</code>: bool = true<a class="headerlink" href="#chplLogging.logHeader.useTime" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.logHeader.writeThis">
+<em class="property">proc </em><code class="descname">writeThis</code><span class="sig-paren">(</span><em>wc</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.logHeader.writeThis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.logHeader.path">
+<em class="property">proc </em><code class="descname">path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.logHeader.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.logHeader.size">
+<em class="property">proc </em><code class="descname">size</code><a class="headerlink" href="#chplLogging.logHeader.size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="chplLogging.+">
+<em class="property">proc </em><code class="descname">+</code><span class="sig-paren">(</span><em>a: logHeader</em>, <em>b: string</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.+" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function overloads for the logHeader which allow add strings, in order, to the
+internal domain to allow for simplification of a stack trace.</p>
+</dd></dl>
+
+<dl class="function">
+<dt>
+<em class="property">proc </em><code class="descname">+</code><span class="sig-paren">(</span><em>b: string</em>, <em>a: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Same as above, but in the reverse case.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="chplLogging.+=">
+<em class="property">proc </em><code class="descname">+=</code><span class="sig-paren">(</span><em>ref a: logHeader</em>, <em>b: string</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.+=" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case you like a good in-place addition.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="chplLogging.chplLogger">
+<em class="property">class </em><code class="descname">chplLogger</code><a class="headerlink" href="#chplLogging.chplLogger" title="Permalink to this definition">¶</a></dt>
+<dd><p>The logging module.  This is what is responsible for storing file handles,
+channels, and most of the formatting options.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><ul class="first last simple">
+<li><strong>currentDebugLevel</strong> &#8211; What level of messages to print.  Valid values are
+-1, 0, 1, and 2.  -1 should not be used externally and is used to disable
+every log call that is NOT called with .devel().  This is the type of thing
+you would set with a configuration flag, for instance.</li>
+<li><strong>maxCharacters</strong> &#8211; how many characters can be printed on one line before
+a new line is written.  Note that this is &#8216;fuzzy&#8217; currently.  Eventually,
+you&#8217;ll be able to disable newlines altogether (useful when making a log
+searchable or human readable).</li>
+<li><strong>headerStarter</strong> &#8211; Filler character used in the various headers.</li>
+<li><strong>indent</strong> &#8211; How many spaces should proceed each message?</li>
+<li><strong>fileName</strong> &#8211; What logfile should stdout go to?</li>
+<li><strong>logsDir</strong> &#8211; What directory logs should be stored in.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.currentDebugLevel">
+<em class="property">var </em><code class="descname">currentDebugLevel</code>: int<a class="headerlink" href="#chplLogging.chplLogger.currentDebugLevel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.DEVEL">
+<em class="property">var </em><code class="descname">DEVEL</code> = -1<a class="headerlink" href="#chplLogging.chplLogger.DEVEL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constants for use in determing log levels</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.DEBUG">
+<em class="property">var </em><code class="descname">DEBUG</code> = 0<a class="headerlink" href="#chplLogging.chplLogger.DEBUG" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.WARNING">
+<em class="property">var </em><code class="descname">WARNING</code> = 1<a class="headerlink" href="#chplLogging.chplLogger.WARNING" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.RUNTIME">
+<em class="property">var </em><code class="descname">RUNTIME</code> = 2<a class="headerlink" href="#chplLogging.chplLogger.RUNTIME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.maxCharacters">
+<em class="property">var </em><code class="descname">maxCharacters</code> = 160<a class="headerlink" href="#chplLogging.chplLogger.maxCharacters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.headerStarter">
+<em class="property">var </em><code class="descname">headerStarter</code> = &quot;/&quot;<a class="headerlink" href="#chplLogging.chplLogger.headerStarter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.indent">
+<em class="property">var </em><code class="descname">indent</code> = 5<a class="headerlink" href="#chplLogging.chplLogger.indent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.l">
+<em class="property">var </em><code class="descname">l</code> = new shared AppendExpr.Call08<a class="headerlink" href="#chplLogging.chplLogger.l" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.tId">
+<em class="property">var </em><code class="descname">tId</code>: int<a class="headerlink" href="#chplLogging.chplLogger.tId" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.filesOpened">
+<em class="property">var </em><code class="descname">filesOpened</code>: domain(string)<a class="headerlink" href="#chplLogging.chplLogger.filesOpened" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.channelsOpened">
+<em class="property">var </em><code class="descname">channelsOpened</code>: [filesOpened] channel(true, iokind.dynamic, true)<a class="headerlink" href="#chplLogging.chplLogger.channelsOpened" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.channelDebugHeader">
+<em class="property">var </em><code class="descname">channelDebugHeader</code>: [filesOpened] string<a class="headerlink" href="#chplLogging.chplLogger.channelDebugHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.channelDebugPath">
+<em class="property">var </em><code class="descname">channelDebugPath</code>: [filesOpened] string<a class="headerlink" href="#chplLogging.chplLogger.channelDebugPath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.fileHandles">
+<em class="property">var </em><code class="descname">fileHandles</code>: [filesOpened] file<a class="headerlink" href="#chplLogging.chplLogger.fileHandles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.lastDebugHeader">
+<em class="property">var </em><code class="descname">lastDebugHeader</code> = &quot;&quot;<a class="headerlink" href="#chplLogging.chplLogger.lastDebugHeader" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.time">
+<em class="property">var </em><code class="descname">time</code> = AppendExpr.Call08<a class="headerlink" href="#chplLogging.chplLogger.time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.fileName">
+<em class="property">var </em><code class="descname">fileName</code> = &quot;chpl.log&quot;<a class="headerlink" href="#chplLogging.chplLogger.fileName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="chplLogging.chplLogger.logsDir">
+<em class="property">var </em><code class="descname">logsDir</code> = &quot;&quot;<a class="headerlink" href="#chplLogging.chplLogger.logsDir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.exitRoutine">
+<em class="property">proc </em><code class="descname">exitRoutine</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.exitRoutine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called in the event of a shutdown to ensure channels are closed and files are synced</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.formatHeader">
+<em class="property">proc </em><code class="descname">formatHeader</code><span class="sig-paren">(</span><em>mtype: string</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.formatHeader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Formats the debugLevel header, not the stack trace header.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.printToConsole">
+<em class="property">proc </em><code class="descname">printToConsole</code><span class="sig-paren">(</span><em>msg</em>, <em>debugLevel: string</em>, <em>lh: logHeader</em>, <em>header: bool</em><span class="sig-paren">)</span> throws<a class="headerlink" href="#chplLogging.chplLogger.printToConsole" title="Permalink to this definition">¶</a></dt>
+<dd><p>The bulk of the logic.  This is responsible for parsing the logHeader,
+determining what channel should be written to, and opening it if necessary.
+Note that things can be sent to both stdout AND a log file for stdout (think
+of the tee program).  It determines whether the incoming message is of the
+same debugLevel or not, and if not, prints a new header.</p>
+<p>Do not call this directly; it only prints what it&#8217;s told to print.</p>
+<p>Has separate logic for &#8216;regular&#8217; or &#8216;header&#8217; type messages; header type
+messages are things like logos, etc.  They are not timestamped and
+have slightly different formatting.  They are also not assumed to be splittable.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.genericMessage">
+<em class="property">proc </em><code class="descname">genericMessage</code><span class="sig-paren">(</span><em>msg</em>, <em>mtype: int</em>, <em>debugLevel: string</em>, <em>gt: bool</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.genericMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes input information from the actual log calling functions, determines
+whether the current debugLevel allows it to be written, then calls
+printToConsole if true.</p>
+<p>This version supports not using a logHeader.  You probably shouldn&#8217;t use it.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">genericMessage</code><span class="sig-paren">(</span><em>msg</em>, <em>mtype: int</em>, <em>debugLevel: string</em>, <em>lh: logHeader</em>, <em>gt: bool</em><span class="sig-paren">)</span></dt>
+<dd><p>Same as above, but supports using an actual logHeader.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">genericMessage</code><span class="sig-paren">(</span><em>msg</em>, <em>mtype: int</em>, <em>debugLevel: string</em>, <em>lh: logHeader</em>, <em>gt: bool</em>, <em>header: bool</em><span class="sig-paren">)</span></dt>
+<dd><p>Not too different from the above, but is used solely by the .header() method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.debug">
+<em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program to do debug logging</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">debug</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program to do debug logging w/ a logHeader</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.devel">
+<em class="property">proc </em><code class="descname">devel</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.devel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program to do DEVEL type logging, sans logHeader</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">devel</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program to do DEVEL type logging</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.warning">
+<em class="property">proc </em><code class="descname">warning</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.warning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program to call a RUNTIME WARNING, sans logHeader</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">warning</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program to call a RUNTIME WARNING</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.log">
+<em class="property">proc </em><code class="descname">log</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program for normal program logging, sans logHeader</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">log</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program for normal program logging</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.critical">
+<em class="property">proc </em><code class="descname">critical</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.critical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program for critical failure messages.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">critical</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program for critical failure messages, sans logHeader.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="chplLogging.chplLogger.header">
+<em class="property">proc </em><code class="descname">header</code><span class="sig-paren">(</span><em>msg ...?n</em><span class="sig-paren">)</span><a class="headerlink" href="#chplLogging.chplLogger.header" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call this in your program to print out logo-type messages, sans logHeader.</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<em class="property">proc </em><code class="descname">header</code><span class="sig-paren">(</span><em>msg ...?n</em>, <em>in lh: logHeader</em><span class="sig-paren">)</span></dt>
+<dd><p>Call this in your program to print out logo-type messages.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../../../../../../index.html" class="btn btn-neutral" title="chpldoc documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, .
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../../../',
+            VERSION:'0.0.1',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+  
+ 
+
+
+
+</body>
+</html>
