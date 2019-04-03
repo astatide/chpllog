@@ -12,18 +12,18 @@
 
     ::
 
-      use chplLogging;
+      use Logging;
 
-      var log = new owned chplLogging.chplLogger();
+      var log = new owned Logging.Logger();
       log.currentDebugLevel = 0;
-      var chmain = new chplLogging.logHeader();
+      var chmain = new Logging.logHeader();
       chmain.header = 'stdout';
 
       log.header('Test of logging infrastructure', chmain);
       log.debug('Starting %i tasks'.format(6), chmain);
 
       forall v in 1..6 {
-        var ch = new chplLogging.logHeader();
+        var ch = new Logging.logHeader();
         ch.id = v : string; // Cast it to a string
         ch.header = 'V%i'.format(v); // now, any subsequent calls with this ch will be written to V%s.log
         log.header('TESTING TASK ID:', v : string, ch);
@@ -37,7 +37,7 @@
       // We can also use this to set a stack trace.  We can pass around ch and add
       // strings to it to let us know what function is calling.
 
-      proc mainFunction(in ch: chplLogging.logHeader) throws {
+      proc mainFunction(in ch: Logging.logHeader) throws {
         ch += 'mainFunction';
         log.log('Calling!', ch);
         secondaryFunction(ch);
@@ -45,7 +45,7 @@
 
       }
 
-      proc secondaryFunction(in ch: chplLogging.logHeader) {
+      proc secondaryFunction(in ch: Logging.logHeader) {
         ch += 'secondaryFunction';
         log.log('Calling!', ch);
 
@@ -87,7 +87,7 @@
 
  */
 
-module chplLogging {
+module Logging {
 
   /*
       If set to true, we explicitly call an fsync on the file and channel
@@ -118,7 +118,7 @@ module chplLogging {
 
   A record specifying where and how a message should be written.  This is
   passed through to the function calls such as `log` and `debug`, which the
-  printToConsole method in chplLogger uses to determine whether to open a new
+  printToConsole method in Logger uses to determine whether to open a new
   channel, use an existing one, or send in to stdout.  By default, it's set to
   use stdout.
 
@@ -129,7 +129,7 @@ module chplLogging {
     order of addition is kept when printing msg back out.
 
   :arg msg: The set of strings that make up the header.  This is printed to a
-    channel when printedHeader = true; the chplLogger simply calls `write` on the
+    channel when printedHeader = true; the Logger simply calls `write` on the
     logHeader, and the writeThis() function prints the header if necessary.
     By default, this is treated as a stack trace: each element in the msg array is
     printed in the order it was added, separated by `sep`, starting at the end
@@ -145,7 +145,7 @@ module chplLogging {
   :arg header: used to identify whether or not the message should be sent
     to stdout, or to a file.  header is used as the filename, and is kept
     different from id to allow multiple channels to write to the same file.
-    Since chplLogger blocks, writes should be safe.
+    Since Logger blocks, writes should be safe.
 
   :arg currentTask: An optional value which can be used to track which logHeader
     is being used in which task.  Can also be used for naming files.
@@ -331,7 +331,7 @@ module chplLogging {
 
   */
 
-  class chplLogger {
+  class Logger {
     // This is a class to let us handle all input and output.
     var currentDebugLevel: int;
 
